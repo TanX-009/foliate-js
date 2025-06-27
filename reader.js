@@ -285,7 +285,7 @@ const loadFromURLParam = async () => {
   const fileName = decodeURIComponent(fileUrl.split("/").pop());
 
   try {
-    const response = await fetch(fileUrl);
+    const response = await fetch(`${BASE_URL}/${fileUrl}`);
     if (!response.ok) throw new Error("Failed to fetch file");
 
     const blob = await response.blob();
