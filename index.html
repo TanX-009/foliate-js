@@ -172,7 +172,7 @@
           li.addEventListener("click", () => {
             const encoded = encodeURIComponent(file.file);
             localStorage.setItem("lastBook", file.file); // remember last opened
-            window.location.href = `/reader.html?file=/books/${encoded}`;
+            window.location.href = `${BASE_URL}/reader.html?file=/books/${encoded}`;
           });
 
           container.appendChild(li);
