@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>EPUB Library</title>
+
+    <link rel="stylesheet" href="/colors.css" />
+    <style>
+      :root {
+        color-scheme: light dark;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: sans-serif;
+        padding: 2rem;
+
+        margin: 0 auto;
+        max-width: 900px;
+
+        background: var(--surface);
+        color: var(--onSurface);
+        transition:
+          background 0.3s,
+          color 0.3s;
+      }
+
+      h1 {
+        margin-bottom: 1rem;
+      }
+
+      #search {
+        width: 100%;
+        padding: 0.5rem;
+        margin-bottom: 1.5rem;
+        font-size: 1rem;
+        border: 1px solid var(--outline);
+        box-sizing: border-box;
+      }
+
+      .book-list {
+        list-style: none;
+        padding: 0;
+      }
+
+      .book-item {
+        background: var(--surfaceContainer);
+        padding: 0;
+        margin-bottom: 0.75rem;
+        border: 1px solid var(--outline);
+        cursor: pointer;
+        transition: background 0.2s ease;
+      }
+
+      .book-item:hover {
+        border-width: 3px;
+      }
+
+      .book-info {
+        min-width: 100%;
+        padding: 1rem 1rem 1rem 0.8rem;
+        overflow: auto;
+      }
+
+      .progress {
+        font-size: 0.9rem;
+        color: var(--primary);
+      }
+      .disf {
+        display: flex;
+      }
+      .jcsb {
+        justify-content: space-between;
+      }
+      .aic {
+        align-items: center;
+      }
+      #upload-btn {
+        padding: 0.4rem;
+      }
+      .progress-bar-container {
+        position: relative;
+        height: 10px;
+        overflow: hidden;
+      }
+
+      .progress-bar {
+        background: var(--secondary);
+        height: 100%;
+        transition: width 0.3s ease;
+      }
+
+      .progress-label {
+        font-size: 0.85rem;
+        color: var(--primaryContainer);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="disf jcsb aic">
+      <h1>Available Books</h1>
+      <button id="upload-btn">Upload</button>
+    </div>
+    <input type="file" id="upload" accept=".epub" hidden />
+    <input type="text" id="search" placeholder="Search books..." />
+    <ul class="book-list" id="book-list"></ul>
+
+    <script>
+      let books = [];
+
+      async function loadBooks() {
+        try {
+          const res = await fetch("/api/list");
+          const data = await res.json();
+          books = data.files || [];
+          renderBooks(books);
+        } catch (err) {
+          console.error("Failed to load book list:", err);
+        }
+      }
+
+      function renderBooks(bookList) {
+        const container = document.getElementById("book-list");
+        container.innerHTML = "";
+
+        const lastBook = localStorage.getItem("foliate-last-book");
+
+        if (lastBook) {
+          bookList.sort((a, b) => {
+            if (a.file === lastBook) return -1;
+            if (b.file === lastBook) return 1;
+            return 0;
+          });
+        }
+
+        for (const file of bookList) {
+          const li = document.createElement("li");
+          li.className = "book-item";
+
+          const title = document.createElement("div");
+          title.textContent = file.file;
+          title.className = "disf jcsb aic book-info";
+
+          li.appendChild(title);
+
+          // Progress bar
+          if (file.progress != null && file.progress >= 0) {
+            const percent = Math.round(file.progress * 100);
+
+            const barContainer = document.createElement("div");
+            barContainer.className = "progress-bar-container";
+
+            const bar = document.createElement("div");
+            bar.className = "progress-bar";
+            bar.style.width = `${percent}%`;
+
+            const percentLabel = document.createElement("span");
+            percentLabel.className = "progress-label";
+            percentLabel.textContent = `${percent}%`;
+
+            barContainer.appendChild(bar);
+            title.appendChild(percentLabel);
+            li.appendChild(barContainer);
+          }
+
+          li.addEventListener("click", () => {
+            const encoded = encodeURIComponent(file.file);
+            localStorage.setItem("lastBook", file.file); // remember last opened
+            window.location.href = `/reader.html?file=/books/${encoded}`;
+          });
+
+          container.appendChild(li);
+        }
+
+        if (bookList.length === 0) {
+          container.innerHTML = "<li>No books found.</li>";
+        }
+      }
+
+      document.getElementById("search").addEventListener("input", (e) => {
+        const query = e.target.value.toLowerCase();
+        const filtered = books.filter((b) =>
+          b.file.toLowerCase().includes(query),
+        );
+        renderBooks(filtered);
+      });
+
+      loadBooks();
+
+      document.getElementById("upload-btn").addEventListener("click", () => {
+        document.getElementById("upload").click();
+      });
+
+      document
+        .getElementById("upload")
+        .addEventListener("change", async (e) => {
+          const file = e.target.files[0];
+          if (!file || !file.name.endsWith(".epub")) return;
+
+          const formData = new FormData();
+          formData.append("file", file);
+
+          try {
+            const res = await fetch("/api/upload", {
+              method: "POST",
+              body: formData,
+            });
+
+            if (res.ok) {
+              alert("Upload successful!");
+              await loadBooks(); // refresh list
+            } else {
+              const err = await res.text();
+              alert("Upload failed: " + err);
+            }
+          } catch (err) {
+            alert("Error uploading file.");
+            console.error(err);
+          }
+
+          e.target.value = ""; // reset input so same file can be re-selected
+        });
+    </script>
+  </body>
+</html>
