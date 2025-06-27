@@ -112,10 +112,11 @@
 
     <script>
       let books = [];
+      const BASE_URL = "/booky";
 
       async function loadBooks() {
         try {
-          const res = await fetch("/api/list");
+          const res = await fetch(`${BASE_URL}/api/list`);
           const data = await res.json();
           books = data.files || [];
           renderBooks(books);
@@ -206,7 +207,7 @@
           formData.append("file", file);
 
           try {
-            const res = await fetch("/api/upload", {
+            const res = await fetch(`${BASE_URL}/api/upload`, {
               method: "POST",
               body: formData,
             });

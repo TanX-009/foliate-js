@@ -3,6 +3,8 @@ import { createTOCView } from "./ui/tree.js";
 import { createMenu } from "./ui/menu.js";
 import { Overlayer } from "./overlayer.js";
 
+const BASE_URL = "/booky";
+
 const getCSS = ({ spacing, justify, hyphenate }) => `
     @namespace epub "http://www.idpf.org/2007/ops";
     html {
@@ -248,7 +250,7 @@ const open = async (file, fileName, progress) => {
 
 const saveProgress = async (fileName, progress) => {
   try {
-    await fetch("/api/progress", {
+    await fetch(`${BASE_URL}/api/progress`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ file: fileName, progress }),
@@ -261,7 +263,7 @@ const saveProgress = async (fileName, progress) => {
 const loadProgress = async (fileName) => {
   try {
     const res = await fetch(
-      `/api/progress?file=${encodeURIComponent(fileName)}`,
+      `${BASE_URL}/api/progress?file=${encodeURIComponent(fileName)}`,
     );
     const progress = await res.json();
     if (res.ok) return progress;
